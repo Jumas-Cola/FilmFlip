@@ -3,8 +3,10 @@ package com.example.filmflip.ui.screens
 import android.graphics.Bitmap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -416,7 +418,36 @@ internal fun CropOverlay(
         Box(
             modifier = Modifier
                 .width(imgWidthDp)
-                .height(imgHeightDp),
+                .height(imgHeightDp)
+                .pointerInput(hitRadius) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val down = event.changes.firstOrNull { it.pressed && !it.isConsumed } ?: continue
+                            down.consume()
+
+                            val handle = hitTest(down.position)
+                            if (handle != null) {
+                                draggingHandle = handle
+                                var prevPos = down.position
+
+                                do {
+                                    val dragEvent = awaitPointerEvent(PointerEventPass.Initial)
+                                    val change = dragEvent.changes.firstOrNull() ?: break
+                                    if (change.positionChanged()) {
+                                        change.consume()
+                                        val dx = change.position.x - prevPos.x
+                                        val dy = change.position.y - prevPos.y
+                                        moveHandle(handle, Offset(dx, dy))
+                                        prevPos = change.position
+                                    }
+                                } while (dragEvent.changes.any { it.pressed })
+
+                                draggingHandle = null
+                            }
+                        }
+                    }
+                },
             contentAlignment = Alignment.Center
         ) {
             Image(
@@ -426,25 +457,7 @@ internal fun CropOverlay(
             )
 
             Canvas(
-                modifier = Modifier
-                    .matchParentSize()
-                    .pointerInput(hitRadius) {
-                        detectDragGestures(
-                            onDragStart = { pos ->
-                                draggingHandle = hitTest(pos)
-                            },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-                                draggingHandle?.let { moveHandle(it, dragAmount) }
-                            },
-                            onDragEnd = {
-                                draggingHandle = null
-                            },
-                            onDragCancel = {
-                                draggingHandle = null
-                            }
-                        )
-                    }
+                modifier = Modifier.matchParentSize()
             ) {
                 val cx = currentCrop.left * imgW
                 val cy = currentCrop.top * imgH
