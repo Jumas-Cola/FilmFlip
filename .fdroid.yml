@@ -1,0 +1,35 @@
+# F-Droid build metadata for FilmFlip
+# https://f-droid.org/docs/Build_Metadata_Reference/
+
+RepoType: git
+Repo: https://github.com/Jumas-Cola/FilmFlip.git
+RepoTrigger: .fdroid.yml
+License: MIT
+LicenseFile: LICENSE
+
+Name: FilmFlip
+WebSite: https://github.com/Jumas-Cola/FilmFlip
+SourceCode: https://github.com/Jumas-Cola/FilmFlip
+
+Categories: Photography
+
+Summary: Film negative photo recovery app
+Description: Capture film negatives with your phone camera and recover them to normal photos. Features include automatic white balance, negative inversion, gamma/contrast/brightness/warmth adjustment, image rotation, cropping, and a built-in backlight for illuminating film strips.
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+VersionTagPattern: v%v
+
+Builds:
+  - versionName: 1.03
+    versionCode: 4
+    commit: v1.03
+    submodules: true
+    gradle:
+      - yes
+    scandelete:
+      - app/src/androidTest
+      - app/src/test
+
+CurrentVersion: 1.03
+CurrentVersionCode: 4
