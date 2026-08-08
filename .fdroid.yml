@@ -26,9 +26,6 @@ Builds:
     commit: v1.03
     gradle:
       - yes
-    scandelete:
-      - app/src/androidTest
-      - app/src/test
 
 CurrentVersion: 1.03
 CurrentVersionCode: 4
