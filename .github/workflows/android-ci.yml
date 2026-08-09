@@ -27,12 +27,6 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Install build-tools 34
-        env:
-          SKIP_JDK_VERSION_CHECK: true
-        run: |
-          /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;34.0.0"
-
       - name: Decode keystore
         run: |
           printf '%s' "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > filmflip-release.jks
@@ -40,22 +34,19 @@ jobs:
       - name: Build unsigned release APK
         run: ./gradlew assembleRelease
 
-      - name: Sign APK v1+v2 only
-        run: |
-          jarsigner \
-            -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-            -keystore filmflip-release.jks \
-            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
-            app/build/outputs/apk/release/app-release-unsigned.apk filmflip
-          /usr/local/lib/android/sdk/build-tools/34.0.0/apksigner sign \
-            --v1-signing-enabled true \
-            --v2-signing-enabled true \
-            --ks filmflip-release.jks \
-            --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
-            app/build/outputs/apk/release/app-release-unsigned.apk
+      - name: Sign APK
+        uses: ilharp/sign-android-release@v2
+        id: sign_app
+        with:
+          releaseDir: app/build/outputs/apk/release
+          signingKey: ${{ secrets.KEYSTORE_BASE64 }}
+          keyAlias: filmflip
+          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEYSTORE_PASSWORD }}
+          buildToolsVersion: 34.0.0
 
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release-unsigned.apk "FilmFlip-${GITHUB_REF_NAME}.apk"
+        run: mv "${{ steps.sign_app.outputs.signedFile }}" "FilmFlip-${GITHUB_REF_NAME}.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
