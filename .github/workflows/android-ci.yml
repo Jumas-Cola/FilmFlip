@@ -33,11 +33,16 @@ jobs:
           ls -la app/filmflip-release.jks
           keytool -list -v -keystore app/filmflip-release.jks -storepass "${{ secrets.KEYSTORE_PASSWORD }}" 2>&1 | head -10
 
-      - name: Build release APK
-        run: ./gradlew assembleRelease -PKEYSTORE_PASSWORD="${{ secrets.KEYSTORE_PASSWORD }}" -PKEY_PASSWORD="${{ secrets.KEY_PASSWORD }}"
+      - name: Build unsigned release APK
+        run: ./gradlew assembleRelease
 
-      - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release-unsigned.apk "FilmFlip-${GITHUB_REF_NAME}.apk" || mv app/build/outputs/apk/release/app-release.apk "FilmFlip-${GITHUB_REF_NAME}.apk"
+      - name: Sign APK
+        run: |
+          ~/Android/Sdk/build-tools/37.0.0/apksigner sign \
+            --ks app/filmflip-release.jks \
+            --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
+            --out FilmFlip-${GITHUB_REF_NAME}.apk \
+            app/build/outputs/apk/release/app-release-unsigned.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
