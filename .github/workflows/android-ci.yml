@@ -28,7 +28,10 @@ jobs:
         run: chmod +x gradlew
 
       - name: Decode keystore
-        run: printf '%s' "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/filmflip-release.jks
+        run: |
+          printf '%s' "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/filmflip-release.jks
+          ls -la app/filmflip-release.jks
+          keytool -list -v -keystore app/filmflip-release.jks -storepass ${{ secrets.KEYSTORE_PASSWORD }} 2>&1 | head -10
 
       - name: Build release APK
         env:
