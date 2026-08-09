@@ -21,11 +21,24 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            val keystoreFile = project.layout.projectDirectory.file("filmflip-release.jks").asFile
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "changeme_store_pass"
+                keyAlias = "filmflip"
+                keyPassword = System.getenv("KEY_PASSWORD") ?: "changeme_store_pass"
+            }
+        }
+    }
+
     buildTypes {
         release {
             optimization {
                 enable = false
             }
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     packaging {
