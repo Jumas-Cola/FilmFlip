@@ -38,7 +38,7 @@ jobs:
 
       - name: Sign APK
         run: |
-          ~/Android/Sdk/build-tools/37.0.0/apksigner sign \
+          $ANDROID_HOME/build-tools/37.0.0/apksigner sign \
             --ks app/filmflip-release.jks \
             --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
             --out FilmFlip-${GITHUB_REF_NAME}.apk \
