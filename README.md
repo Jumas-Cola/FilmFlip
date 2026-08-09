@@ -16,7 +16,9 @@ An Android app that restores photos from film negatives. Shoot a negative with t
 
 ## Screenshots
 
-_Home → Camera/Gallery → Editor → Result_
+| Step 1 | Step 2 | Step 3 |
+|:------:|:------:|:------:|
+| ![Step 1](screenshots/step1.jpg) | ![Step 2](screenshots/step2.jpg) | ![Step 3](screenshots/step3.jpg) |
 
 ## Tech Stack
 
