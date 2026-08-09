@@ -27,26 +27,11 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Decode keystore
-        run: |
-          printf '%s' "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/filmflip-release.jks
-          ls -la app/filmflip-release.jks
-          keytool -list -v -keystore app/filmflip-release.jks -storepass "${{ secrets.KEYSTORE_PASSWORD }}" 2>&1 | head -10
-
       - name: Build unsigned release APK
         run: ./gradlew assembleRelease
 
-      - name: Sign APK
-        run: |
-          $ANDROID_HOME/build-tools/37.0.0/apksigner sign \
-            --v1-signing-enabled \
-            --v2-signing-enabled \
-            --v3-signing-disabled \
-            --v4-signing-disabled \
-            --ks app/filmflip-release.jks \
-            --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
-            --out FilmFlip-${GITHUB_REF_NAME}.apk \
-            app/build/outputs/apk/release/app-release-unsigned.apk
+      - name: Rename APK
+        run: mv app/build/outputs/apk/release/app-release-unsigned.apk "FilmFlip-${GITHUB_REF_NAME}.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
