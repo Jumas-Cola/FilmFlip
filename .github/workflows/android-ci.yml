@@ -31,12 +31,10 @@ jobs:
         run: |
           printf '%s' "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/filmflip-release.jks
           ls -la app/filmflip-release.jks
-          keytool -list -v -keystore app/filmflip-release.jks -storepass ${{ secrets.KEYSTORE_PASSWORD }} 2>&1 | head -10
+          keytool -list -v -keystore app/filmflip-release.jks -storepass "${{ secrets.KEYSTORE_PASSWORD }}" 2>&1 | head -10
 
       - name: Build release APK
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease -PKEYSTORE_PASSWORD="${{ secrets.KEYSTORE_PASSWORD }}" -PKEY_PASSWORD="${{ secrets.KEY_PASSWORD }}"
 
       - name: Rename APK
         run: mv app/build/outputs/apk/release/app-release-unsigned.apk "FilmFlip-${GITHUB_REF_NAME}.apk" || mv app/build/outputs/apk/release/app-release.apk "FilmFlip-${GITHUB_REF_NAME}.apk"

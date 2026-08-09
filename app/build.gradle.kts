@@ -23,12 +23,14 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystoreFile = project.layout.projectDirectory.file("filmflip-release.jks").asFile
-            if (keystoreFile.exists()) {
+            val keystoreFile = project.layout.projectDirectory.file("../filmflip-release.jks").asFile
+            val storePass = findProperty("KEYSTORE_PASSWORD") as? String ?: System.getenv("KEYSTORE_PASSWORD")
+            val keyPass = findProperty("KEY_PASSWORD") as? String ?: System.getenv("KEY_PASSWORD")
+            if (keystoreFile.exists() && !storePass.isNullOrEmpty()) {
                 storeFile = keystoreFile
-                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "changeme_store_pass"
+                storePassword = storePass
                 keyAlias = "filmflip"
-                keyPassword = System.getenv("KEY_PASSWORD") ?: "changeme_store_pass"
+                keyPassword = keyPass
             }
         }
     }
@@ -38,7 +40,9 @@ android {
             optimization {
                 enable = false
             }
-            signingConfig = signingConfigs.getByName("release")
+            if (signingConfigs.getByName("release").storeFile != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     packaging {
