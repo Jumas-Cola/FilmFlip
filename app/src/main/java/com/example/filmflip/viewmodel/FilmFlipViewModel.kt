@@ -19,6 +19,7 @@ import com.example.filmflip.processor.ProcessingParams
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -104,12 +105,15 @@ class FilmFlipViewModel : ViewModel() {
         cropRect = rect
     }
 
+    private var processJob: Job? = null
+
     fun applyCrop() {
         isCropping = false
         debounceJob?.cancel()
+        processJob?.cancel()
         val rect = cropRect
         val rot = rotation
-        viewModelScope.launch {
+        processJob = viewModelScope.launch {
             val source = originalBitmap ?: return@launch
             val baked = withContext(Dispatchers.IO) {
                 val copy = source.copy(Bitmap.Config.ARGB_8888, true)
@@ -125,10 +129,12 @@ class FilmFlipViewModel : ViewModel() {
                 }
                 result
             }
-            withContext(Dispatchers.IO) {
-                source.recycle()
-                processedBitmap?.recycle()
+            if (!isActive) {
+                baked.recycle()
+                return@launch
             }
+            source.recycle()
+            processedBitmap?.recycle()
             originalBitmap = baked
             processedBitmap = null
             rotation = 0
@@ -239,10 +245,10 @@ class FilmFlipViewModel : ViewModel() {
 
     fun goToHome() {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                originalBitmap?.recycle()
-                processedBitmap?.recycle()
-            }
+            processJob?.cancel()
+            debounceJob?.cancel()
+            originalBitmap?.recycle()
+            processedBitmap?.recycle()
             originalBitmap = null
             processedBitmap = null
             saveResult = null
@@ -282,6 +288,8 @@ class FilmFlipViewModel : ViewModel() {
     }
 
     private fun processImage() {
+        debounceJob?.cancel()
+        processJob?.cancel()
         val source = originalBitmap
         val g = gamma
         val c = contrast
@@ -289,22 +297,34 @@ class FilmFlipViewModel : ViewModel() {
         val w = warmth
         val r = rotation
         val cr = cropRect
-        viewModelScope.launch {
+        processJob = viewModelScope.launch {
             isProcessing = true
-            val result = if (source != null) {
-                val copy = source.copy(Bitmap.Config.ARGB_8888, true)
-                withContext(Dispatchers.IO) {
-                    var processed = processor.autoWhiteBalance(copy)
-                    processed = processor.process(processed, ProcessingParams(g, c, b, w))
-                    if (r != 0) {
-                        processed = processor.rotate(processed, r)
-                    }
-                    if (!cr.equals(CropRect())) {
-                        processed = processor.crop(processed, cr)
-                    }
-                    processed
+            if (source == null || !isActive) {
+                isProcessing = false
+                return@launch
+            }
+            val copy = source.copy(Bitmap.Config.ARGB_8888, true)
+            val result = withContext(Dispatchers.IO) {
+                var processed = processor.autoWhiteBalance(copy)
+                processed = processor.process(processed, ProcessingParams(g, c, b, w))
+                if (r != 0) {
+                    processed = processor.rotate(processed, r)
                 }
-            } else null
+                if (!cr.equals(CropRect())) {
+                    processed = processor.crop(processed, cr)
+                }
+                processed
+            }
+            if (!isActive) {
+                result.recycle()
+                copy.recycle()
+                isProcessing = false
+                return@launch
+            }
+            if (result !== copy) {
+                copy.recycle()
+            }
+            processedBitmap?.recycle()
             processedBitmap = result
             isProcessing = false
         }
