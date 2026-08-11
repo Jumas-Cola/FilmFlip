@@ -25,11 +25,16 @@ jobs:
       - name: Build release APK
         run: ./gradlew assembleRelease
 
+      - name: Rename APK
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          cp app/build/outputs/apk/release/app-release-unsigned.apk "FilmFlip-v${VERSION}.apk"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
-          path: app/build/outputs/apk/release/*.apk
+          name: filmflip-apk
+          path: FilmFlip-*.apk
 
   create-release:
     needs: build
@@ -43,12 +48,12 @@ jobs:
       - name: Download APK
         uses: actions/download-artifact@v4
         with:
-          name: app-release
-          path: apk
+          name: filmflip-apk
+          path: release
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: apk/*.apk
+          files: release/FilmFlip-*.apk
           tag_name: ${{ github.ref_name }}
           name: FilmFlip ${{ github.ref_name }}
