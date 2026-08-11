@@ -19,8 +19,9 @@ import com.example.filmflip.processor.ProcessingParams
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 sealed class AppScreen {
@@ -35,6 +36,9 @@ class FilmFlipViewModel : ViewModel() {
     private val processor = NegativeProcessor()
     private var debounceJob: Job? = null
     private val DEBOUNCE_DELAY = 300L
+
+    private val bitmapMutex = Mutex()
+    private var generation = 0
 
     var currentScreen by mutableStateOf<AppScreen>(AppScreen.Home)
         private set
@@ -105,16 +109,17 @@ class FilmFlipViewModel : ViewModel() {
         cropRect = rect
     }
 
-    private var processJob: Job? = null
-
     fun applyCrop() {
         isCropping = false
         debounceJob?.cancel()
-        processJob?.cancel()
         val rect = cropRect
         val rot = rotation
-        processJob = viewModelScope.launch {
-            val source = originalBitmap ?: return@launch
+        viewModelScope.launch {
+            val (source, gen) = bitmapMutex.withLock {
+                val s = originalBitmap ?: return@launch
+                generation++
+                s to generation
+            }
             val baked = withContext(Dispatchers.IO) {
                 val copy = source.copy(Bitmap.Config.ARGB_8888, true)
                 var result = copy
@@ -129,16 +134,18 @@ class FilmFlipViewModel : ViewModel() {
                 }
                 result
             }
-            if (!isActive) {
-                baked.recycle()
-                return@launch
+            bitmapMutex.withLock {
+                if (generation != gen) {
+                    baked.recycle()
+                    return@launch
+                }
+                source.recycle()
+                processedBitmap?.recycle()
+                originalBitmap = baked
+                processedBitmap = null
+                rotation = 0
+                cropRect = CropRect()
             }
-            source.recycle()
-            processedBitmap?.recycle()
-            originalBitmap = baked
-            processedBitmap = null
-            rotation = 0
-            cropRect = CropRect()
             processImage()
         }
     }
@@ -187,16 +194,16 @@ class FilmFlipViewModel : ViewModel() {
             val decoded = withContext(Dispatchers.IO) {
                 decodeSampledBitmap(bitmap)
             }
-            withContext(Dispatchers.IO) {
+            bitmapMutex.withLock {
                 originalBitmap?.recycle()
                 processedBitmap?.recycle()
+                originalBitmap = decoded
+                processedBitmap = null
+                rotation = 0
+                cropRect = CropRect()
+                isCropping = false
+                saveResult = null
             }
-            originalBitmap = decoded
-            processedBitmap = null
-            rotation = 0
-            cropRect = CropRect()
-            isCropping = false
-            saveResult = null
             processImage()
             currentScreen = AppScreen.Edit
         }
@@ -225,16 +232,16 @@ class FilmFlipViewModel : ViewModel() {
                 }
             }
             if (decoded != null) {
-                withContext(Dispatchers.IO) {
+                bitmapMutex.withLock {
                     originalBitmap?.recycle()
                     processedBitmap?.recycle()
+                    originalBitmap = decoded
+                    processedBitmap = null
+                    rotation = 0
+                    cropRect = CropRect()
+                    isCropping = false
+                    saveResult = null
                 }
-                originalBitmap = decoded
-                processedBitmap = null
-                rotation = 0
-                cropRect = CropRect()
-                isCropping = false
-                saveResult = null
                 processImage()
                 currentScreen = AppScreen.Edit
             } else {
@@ -245,13 +252,15 @@ class FilmFlipViewModel : ViewModel() {
 
     fun goToHome() {
         viewModelScope.launch {
-            processJob?.cancel()
             debounceJob?.cancel()
-            originalBitmap?.recycle()
-            processedBitmap?.recycle()
-            originalBitmap = null
-            processedBitmap = null
-            saveResult = null
+            bitmapMutex.withLock {
+                originalBitmap?.recycle()
+                processedBitmap?.recycle()
+                originalBitmap = null
+                processedBitmap = null
+                saveResult = null
+                generation++
+            }
             resetParameters()
             currentScreen = AppScreen.Home
         }
@@ -289,46 +298,47 @@ class FilmFlipViewModel : ViewModel() {
 
     private fun processImage() {
         debounceJob?.cancel()
-        processJob?.cancel()
-        val source = originalBitmap
-        val g = gamma
-        val c = contrast
-        val b = brightness
-        val w = warmth
-        val r = rotation
-        val cr = cropRect
-        processJob = viewModelScope.launch {
+        viewModelScope.launch {
+            val capture = bitmapMutex.withLock {
+                val s = originalBitmap ?: return@withLock null
+                generation++
+                Capture(s, gamma, contrast, brightness, warmth, rotation, cropRect, generation)
+            } ?: return@launch
             isProcessing = true
-            if (source == null || !isActive) {
-                isProcessing = false
-                return@launch
-            }
-            val copy = source.copy(Bitmap.Config.ARGB_8888, true)
+            val copy = capture.source.copy(Bitmap.Config.ARGB_8888, true)
             val result = withContext(Dispatchers.IO) {
                 var processed = processor.autoWhiteBalance(copy)
-                processed = processor.process(processed, ProcessingParams(g, c, b, w))
-                if (r != 0) {
-                    processed = processor.rotate(processed, r)
+                processed = processor.process(processed, ProcessingParams(capture.g, capture.c, capture.b, capture.w))
+                if (capture.r != 0) {
+                    processed = processor.rotate(processed, capture.r)
                 }
-                if (!cr.equals(CropRect())) {
-                    processed = processor.crop(processed, cr)
+                if (!capture.cr.equals(CropRect())) {
+                    processed = processor.crop(processed, capture.cr)
                 }
                 processed
             }
-            if (!isActive) {
-                result.recycle()
-                copy.recycle()
-                isProcessing = false
-                return@launch
+            bitmapMutex.withLock {
+                if (generation != capture.gen) {
+                    result.recycle()
+                    copy.recycle()
+                    isProcessing = false
+                    return@launch
+                }
+                if (result !== copy) {
+                    copy.recycle()
+                }
+                processedBitmap?.recycle()
+                processedBitmap = result
             }
-            if (result !== copy) {
-                copy.recycle()
-            }
-            processedBitmap?.recycle()
-            processedBitmap = result
             isProcessing = false
         }
     }
+
+    private data class Capture(
+        val source: Bitmap, val g: Float, val c: Float,
+        val b: Float, val w: Float, val r: Int,
+        val cr: CropRect, val gen: Int
+    )
 
     private fun reprocess() {
         if (originalBitmap != null) {
