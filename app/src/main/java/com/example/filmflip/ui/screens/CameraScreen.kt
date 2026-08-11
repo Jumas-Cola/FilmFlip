@@ -6,8 +6,7 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.util.DisplayMetrics
-import android.util.Size
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -78,24 +77,9 @@ fun CameraScreen(viewModel: FilmFlipViewModel) {
             .build()
     }
 
-    val analysisResolution = remember {
-        val metrics = DisplayMetrics().also {
-            (context.getSystemService(android.content.Context.WINDOW_SERVICE) as android.view.WindowManager)
-                .defaultDisplay.getRealMetrics(it)
-        }
-        val w = metrics.widthPixels.coerceIn(360, 1280).coerceAtMost(720)
-        val h = metrics.heightPixels.coerceIn(640, 1920)
-        // Round to nearest multiple of 16 (required by CameraX)
-        Size(
-            (w / 16 * 16).toInt(),
-            (h / 16 * 16).toInt()
-        )
-    }
-
     val imageAnalysis = remember {
         ImageAnalysis.Builder()
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
-            .setTargetResolution(analysisResolution)
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build().also { ia ->
                 ia.setAnalyzer(analysisExecutor) { imageProxy: ImageProxy ->
