@@ -15,8 +15,8 @@ android {
         applicationId = "com.example.filmflip"
         minSdk = 28
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.03"
+        versionCode = 5
+        versionName = "1.04"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -34,7 +34,7 @@ android {
         jniLibs {
             useLegacyPackaging = true
             excludes += "**/libandroidx.graphics.path.so"
-            excludes += "**/libimage_processing_util_jni.so"
+
         }
     }
     compileOptions {

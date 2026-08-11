@@ -1,18 +1,23 @@
 package com.example.filmflip.ui.screens
 
 import android.graphics.Bitmap
-import android.graphics.ImageDecoder
+import android.graphics.Matrix
 import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.util.DisplayMetrics
+import android.util.Size
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
-import androidx.camera.view.LifecycleCameraController
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,7 +51,7 @@ import androidx.core.content.ContextCompat
 import com.example.filmflip.R
 import com.example.filmflip.viewmodel.FilmFlipViewModel
 import java.io.File
-import java.io.FileOutputStream
+import java.util.concurrent.Executors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,29 +61,106 @@ fun CameraScreen(viewModel: FilmFlipViewModel) {
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri ->
+        onResult = { uri: Uri? ->
             uri?.let {
                 viewModel.loadFromGallery(context, it)
             }
         }
     )
 
-    val cameraController = remember {
-        LifecycleCameraController(context).apply {
-            setEnabledUseCases(LifecycleCameraController.IMAGE_CAPTURE)
-            cameraSelector = androidx.camera.core.CameraSelector.DEFAULT_BACK_CAMERA
-            imageCaptureMode = ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY
-        }
+    var invertedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
+    val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
+
+    val imageCapture = remember {
+        ImageCapture.Builder()
+            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+            .build()
     }
 
-    androidx.compose.runtime.LaunchedEffect(cameraController) {
-        cameraController.bindToLifecycle(lifecycleOwner)
+    val analysisResolution = remember {
+        val metrics = DisplayMetrics().also {
+            (context.getSystemService(android.content.Context.WINDOW_SERVICE) as android.view.WindowManager)
+                .defaultDisplay.getRealMetrics(it)
+        }
+        val w = metrics.widthPixels.coerceIn(360, 1280).coerceAtMost(720)
+        val h = metrics.heightPixels.coerceIn(640, 1920)
+        // Round to nearest multiple of 16 (required by CameraX)
+        Size(
+            (w / 16 * 16).toInt(),
+            (h / 16 * 16).toInt()
+        )
+    }
+
+    val imageAnalysis = remember {
+        ImageAnalysis.Builder()
+            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+            .setTargetResolution(analysisResolution)
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build().also { ia ->
+                ia.setAnalyzer(analysisExecutor) { imageProxy: ImageProxy ->
+                    try {
+                        val buffer = imageProxy.planes[0].buffer
+                        val width = imageProxy.width
+                        val height = imageProxy.height
+                        val pixels = IntArray(width * height)
+
+                        for (i in pixels.indices) {
+                            val r = buffer.get().toInt() and 0xFF
+                            val g = buffer.get().toInt() and 0xFF
+                            val b = buffer.get().toInt() and 0xFF
+                            val a = buffer.get().toInt() and 0xFF
+                            pixels[i] = (a shl 24) or ((255 - r) shl 16) or ((255 - g) shl 8) or (255 - b)
+                        }
+
+                        val sourceBitmap = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+                        val rotation = imageProxy.imageInfo.rotationDegrees
+                        val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
+                        val rotatedBitmap = Bitmap.createBitmap(
+                            sourceBitmap, 0, 0, width, height, matrix, true
+                        )
+                        sourceBitmap.recycle()
+                        mainHandler.post { invertedBitmap = rotatedBitmap }
+                    } finally {
+                        imageProxy.close()
+                    }
+                }
+            }
+    }
+
+    val previewViewRef = remember { mutableStateOf<PreviewView?>(null) }
+
+    DisposableEffect(lifecycleOwner) {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+
+        cameraProviderFuture.addListener({
+            val cameraProvider = cameraProviderFuture.get()
+            val preview = Preview.Builder().build()
+
+            previewViewRef.value?.let { pv ->
+                preview.setSurfaceProvider(pv.surfaceProvider)
+            }
+
+            cameraProvider.unbindAll()
+            cameraProvider.bindToLifecycle(
+                lifecycleOwner,
+                CameraSelector.DEFAULT_BACK_CAMERA,
+                preview,
+                imageCapture,
+                imageAnalysis
+            )
+        }, ContextCompat.getMainExecutor(context))
+
+        onDispose {
+            mainHandler.removeCallbacksAndMessages(null)
+            analysisExecutor.shutdown()
+        }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Camera") },
+                title = { Text("Camera — Negative Mode") },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.goToHome() }) {
                         Icon(
@@ -108,28 +191,23 @@ fun CameraScreen(viewModel: FilmFlipViewModel) {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    Log.d("FilmFlip", "Capture button clicked")
                     val outputFile = File(context.cacheDir, "capture_${System.currentTimeMillis()}.jpg")
                     val outputOptions = ImageCapture.OutputFileOptions.Builder(outputFile).build()
 
-                    cameraController.takePicture(
+                    imageCapture.takePicture(
                         outputOptions,
                         ContextCompat.getMainExecutor(context),
                         object : ImageCapture.OnImageSavedCallback {
                             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                                Log.d("FilmFlip", "Image saved to ${outputFile.absolutePath}")
                                 val bitmap = loadBitmapFromFile(outputFile)
                                 outputFile.delete()
                                 if (bitmap != null) {
-                                    Log.d("FilmFlip", "Bitmap loaded: ${bitmap.width}x${bitmap.height}")
-                                    viewModel.loadFromCamera(bitmap)
-                                } else {
-                                    Log.e("FilmFlip", "Failed to load bitmap from file")
+                                    viewModel.loadFromCamera(bitmap, 90)
                                 }
                             }
 
                             override fun onError(exception: ImageCaptureException) {
-                                Log.e("FilmFlip", "onError: ${exception.message}", exception)
+                                Log.e("FilmFlip", "Capture error: ${exception.message}", exception)
                             }
                         }
                     )
@@ -150,12 +228,27 @@ fun CameraScreen(viewModel: FilmFlipViewModel) {
             AndroidView(
                 factory = { ctx ->
                     PreviewView(ctx).apply {
-                        this.scaleType = PreviewView.ScaleType.FILL_START
-                        this.controller = cameraController
+                        scaleType = PreviewView.ScaleType.FILL_START
+                    }.also { pv ->
+                        previewViewRef.value = pv
                     }
                 },
                 modifier = Modifier.fillMaxSize()
             )
+
+            invertedBitmap?.let { bitmap ->
+                AndroidView(
+                    factory = {
+                        android.widget.ImageView(context).apply {
+                            scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+                        }
+                    },
+                    update = { imageView ->
+                        imageView.setImageBitmap(bitmap)
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
 
             CaptureOverlay()
         }
@@ -172,7 +265,7 @@ private fun CaptureOverlay() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Place film against the backlight screen",
+            text = "Negative mode active",
             color = Color.White.copy(alpha = 0.8f),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,

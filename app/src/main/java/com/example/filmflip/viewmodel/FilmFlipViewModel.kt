@@ -188,7 +188,7 @@ class FilmFlipViewModel : ViewModel() {
         reprocess()
     }
 
-    fun loadFromCamera(bitmap: Bitmap) {
+    fun loadFromCamera(bitmap: Bitmap, rotationDegrees: Int = 0) {
         viewModelScope.launch {
             isProcessing = true
             val decoded = withContext(Dispatchers.IO) {
@@ -199,7 +199,7 @@ class FilmFlipViewModel : ViewModel() {
                 processedBitmap?.recycle()
                 originalBitmap = decoded
                 processedBitmap = null
-                rotation = 0
+                rotation = rotationDegrees
                 cropRect = CropRect()
                 isCropping = false
                 saveResult = null
