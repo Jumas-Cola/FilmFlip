@@ -11,7 +11,7 @@ Name: FilmFlip
 WebSite: https://github.com/Jumas-Cola/FilmFlip
 SourceCode: https://github.com/Jumas-Cola/FilmFlip
 
-Categories: Photography
+Categories: Camera
 
 Summary: Film negative photo recovery app
 Description: Capture film negatives with your phone camera and recover them to normal photos. Features include automatic white balance, negative inversion, gamma/contrast/brightness/warmth adjustment, image rotation, cropping, and a built-in backlight for illuminating film strips.
@@ -21,12 +21,12 @@ UpdateCheckMode: Tags
 VersionTagPattern: v%v
 
 Builds:
-  - versionName: 1.03
-    versionCode: 4
-    commit: v1.03
+  - versionName: 1.04
+    versionCode: 5
+    commit: v1.04
     subdir: app
     gradle:
       - yes
 
-CurrentVersion: 1.03
-CurrentVersionCode: 4
+CurrentVersion: 1.04
+CurrentVersionCode: 5
