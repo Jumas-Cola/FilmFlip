@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.filmflip"
+    namespace = "org.jumascola.filmflip"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -12,7 +12,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.filmflip"
+        applicationId = "org.jumascola.filmflip"
         minSdk = 28
         targetSdk = 36
         versionCode = 5

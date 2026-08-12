@@ -1,4 +1,4 @@
-package com.example.filmflip.ui.screens
+package org.jumascola.filmflip.ui.screens
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Canvas
@@ -51,10 +51,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import com.example.filmflip.R
-import com.example.filmflip.processor.CropRect
-import com.example.filmflip.ui.crop.*
-import com.example.filmflip.viewmodel.FilmFlipViewModel
+import org.jumascola.filmflip.R
+import org.jumascola.filmflip.processor.CropRect
+import org.jumascola.filmflip.ui.crop.*
+import org.jumascola.filmflip.viewmodel.FilmFlipViewModel
 
 enum class EditMode { Adjust, Crop }
 

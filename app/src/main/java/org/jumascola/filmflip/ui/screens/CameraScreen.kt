@@ -1,4 +1,4 @@
-package com.example.filmflip.ui.screens
+package org.jumascola.filmflip.ui.screens
 
 import android.graphics.Bitmap
 import android.graphics.Matrix
@@ -50,8 +50,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import com.example.filmflip.R
-import com.example.filmflip.viewmodel.FilmFlipViewModel
+import org.jumascola.filmflip.R
+import org.jumascola.filmflip.viewmodel.FilmFlipViewModel
 import java.io.File
 import java.util.concurrent.Executors
 

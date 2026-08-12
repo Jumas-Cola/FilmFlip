@@ -1,4 +1,4 @@
-package com.example.filmflip.viewmodel
+package org.jumascola.filmflip.viewmodel
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -13,9 +13,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.filmflip.processor.CropRect
-import com.example.filmflip.processor.NegativeProcessor
-import com.example.filmflip.processor.ProcessingParams
+import org.jumascola.filmflip.processor.CropRect
+import org.jumascola.filmflip.processor.NegativeProcessor
+import org.jumascola.filmflip.processor.ProcessingParams
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay

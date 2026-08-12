@@ -1,4 +1,4 @@
-package com.example.filmflip.ui.theme
+package org.jumascola.filmflip.ui.theme
 
 import android.app.Activity
 import android.os.Build

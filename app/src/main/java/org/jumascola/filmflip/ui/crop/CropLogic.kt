@@ -1,4 +1,4 @@
-package com.example.filmflip.ui.crop
+package org.jumascola.filmflip.ui.crop
 
 import androidx.compose.ui.geometry.Offset
 

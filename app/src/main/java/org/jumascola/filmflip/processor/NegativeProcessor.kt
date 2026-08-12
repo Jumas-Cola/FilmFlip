@@ -1,4 +1,4 @@
-package com.example.filmflip.processor
+package org.jumascola.filmflip.processor
 
 import android.graphics.Bitmap
 import kotlin.math.roundToInt

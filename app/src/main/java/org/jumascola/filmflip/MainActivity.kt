@@ -1,4 +1,4 @@
-package com.example.filmflip
+package org.jumascola.filmflip
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -16,13 +16,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import com.example.filmflip.ui.screens.BacklightScreen
-import com.example.filmflip.ui.screens.CameraScreen
-import com.example.filmflip.ui.screens.EditScreen
-import com.example.filmflip.ui.screens.HomeScreen
-import com.example.filmflip.ui.theme.FilmFlipTheme
-import com.example.filmflip.viewmodel.AppScreen
-import com.example.filmflip.viewmodel.FilmFlipViewModel
+import org.jumascola.filmflip.ui.screens.BacklightScreen
+import org.jumascola.filmflip.ui.screens.CameraScreen
+import org.jumascola.filmflip.ui.screens.EditScreen
+import org.jumascola.filmflip.ui.screens.HomeScreen
+import org.jumascola.filmflip.ui.theme.FilmFlipTheme
+import org.jumascola.filmflip.viewmodel.AppScreen
+import org.jumascola.filmflip.viewmodel.FilmFlipViewModel
 
 class MainActivity : ComponentActivity() {
 

@@ -1,4 +1,4 @@
-package com.example.filmflip.ui.screens
+package org.jumascola.filmflip.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -21,8 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.filmflip.R
-import com.example.filmflip.viewmodel.FilmFlipViewModel
+import org.jumascola.filmflip.R
+import org.jumascola.filmflip.viewmodel.FilmFlipViewModel
 
 @Composable
 fun HomeScreen(

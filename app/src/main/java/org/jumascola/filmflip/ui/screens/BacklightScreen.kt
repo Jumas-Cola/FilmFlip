@@ -1,4 +1,4 @@
-package com.example.filmflip.ui.screens
+package org.jumascola.filmflip.ui.screens
 
 import android.app.Activity
 import android.view.WindowManager
@@ -19,8 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import com.example.filmflip.R
-import com.example.filmflip.viewmodel.FilmFlipViewModel
+import org.jumascola.filmflip.R
+import org.jumascola.filmflip.viewmodel.FilmFlipViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
