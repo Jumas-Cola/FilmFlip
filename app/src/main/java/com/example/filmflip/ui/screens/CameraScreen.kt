@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -30,6 +32,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -58,6 +61,17 @@ fun CameraScreen(viewModel: FilmFlipViewModel) {
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
 
+    var showPermissionDialog by remember { mutableStateOf(false) }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = RequestPermission(),
+        onResult = { granted ->
+            if (!granted) {
+                showPermissionDialog = true
+            }
+        }
+    )
+
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri: Uri? ->
@@ -66,6 +80,14 @@ fun CameraScreen(viewModel: FilmFlipViewModel) {
             }
         }
     )
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        val permission = android.Manifest.permission.CAMERA
+        val granted = ContextCompat.checkSelfPermission(context, permission) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            cameraPermissionLauncher.launch(permission)
+        }
+    }
 
     var invertedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
@@ -139,6 +161,19 @@ fun CameraScreen(viewModel: FilmFlipViewModel) {
             mainHandler.removeCallbacksAndMessages(null)
             analysisExecutor.shutdown()
         }
+    }
+
+    if (showPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showPermissionDialog = false },
+            title = { Text("Camera Permission Required") },
+            text = { Text("Camera permission is required to use the camera. Please grant it in app settings.") },
+            confirmButton = {
+                TextButton(onClick = { showPermissionDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 
     Scaffold(
