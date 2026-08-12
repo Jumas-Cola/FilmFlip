@@ -1,4 +1,4 @@
-package com.example.filmflip
+package org.jumascola.filmflip
 
 import org.junit.Test
 

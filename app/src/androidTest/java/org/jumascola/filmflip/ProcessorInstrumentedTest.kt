@@ -1,4 +1,4 @@
-package com.example.filmflip
+package org.jumascola.filmflip
 
 import android.graphics.Bitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4

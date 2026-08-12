@@ -1,4 +1,4 @@
-package com.example.filmflip.viewmodel
+package org.jumascola.filmflip.viewmodel
 
 import com.example.filmflip.processor.CropRect
 import kotlinx.coroutines.Dispatchers

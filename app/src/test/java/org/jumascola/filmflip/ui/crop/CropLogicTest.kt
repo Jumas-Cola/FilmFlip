@@ -1,4 +1,4 @@
-package com.example.filmflip.ui.crop
+package org.jumascola.filmflip.ui.crop
 
 import org.junit.Assert.*
 import org.junit.Test
