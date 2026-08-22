@@ -21,6 +21,12 @@ UpdateCheckMode: Tags
 VersionTagPattern: v%v
 
 Builds:
+  - versionName: 1.05
+    versionCode: 6
+    commit: v1.05
+    subdir: app
+    gradle:
+      - yes
   - versionName: 1.04
     versionCode: 5
     commit: v1.04
@@ -28,5 +34,5 @@ Builds:
     gradle:
       - yes
 
-CurrentVersion: 1.04
-CurrentVersionCode: 5
+CurrentVersion: 1.05
+CurrentVersionCode: 6
